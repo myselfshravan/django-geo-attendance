@@ -1,106 +1,144 @@
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fexamples%2Ftree%2Fmain%2Fpython%2Fdjango&demo-title=Django%20%2B%20Vercel&demo-description=Use%20Django%204%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fdjango-template.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994241/random/django.png)
+# Geo-Tagging Based Attendance System
 
-# Django + Vercel
+A Django-based attendance management system that uses geo-tagging to verify employee attendance. This system allows organizations to track employee attendance based on their physical location, ensuring they are within the designated work area when marking attendance.
 
-This example shows how to use Django 4 on Vercel with Serverless Functions using the [Python Runtime](https://vercel.com/docs/concepts/functions/serverless-functions/runtimes/python).
+## Features
 
-## Demo
+- 🌍 Location-based attendance verification
+- 🔐 Role-based access control (Admin/HR/Employees)
+- 📍 Multiple work location support with geofencing
+- 📱 Device information tracking
+- 📊 Comprehensive attendance reports
+- ✅ Automatic attendance status verification
+- 🚀 Serverless deployment support
 
-https://django-template.vercel.app/
+## Tech Stack
 
-## How it Works
+- Django 4.1.3+
+- Django REST Framework
+- PostgreSQL (Production) / SQLite (Development)
+- JWT Authentication
+- Vercel (Serverless Deployment)
 
-Our Django application, `example` is configured as an installed application in `api/settings.py`:
+## Installation
 
-```python
-# api/settings.py
-INSTALLED_APPS = [
-    # ...
-    'example',
-]
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd <project-directory>
 ```
 
-We allow "\*.vercel.app" subdomains in `ALLOWED_HOSTS`, in addition to 127.0.0.1:
-
-```python
-# api/settings.py
-ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app']
+2. Create and activate virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-The `wsgi` module must use a public variable named `app` to expose the WSGI application:
-
-```python
-# api/wsgi.py
-app = get_wsgi_application()
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-The corresponding `WSGI_APPLICATION` setting is configured to use the `app` variable from the `api.wsgi` module:
-
-```python
-# api/settings.py
-WSGI_APPLICATION = 'api.wsgi.app'
+4. Configure environment variables:
+```bash
+# .env file
+DATABASE_URL=postgresql://user:password@host:port/dbname
+SECRET_KEY=your-secret-key
+DEBUG=False
 ```
 
-There is a single view which renders the current time in `example/views.py`:
-
-```python
-# example/views.py
-from datetime import datetime
-
-from django.http import HttpResponse
-
-
-def index(request):
-    now = datetime.now()
-    html = f'''
-    <html>
-        <body>
-            <h1>Hello from Vercel!</h1>
-            <p>The current time is { now }.</p>
-        </body>
-    </html>
-    '''
-    return HttpResponse(html)
+5. Run migrations:
+```bash
+python manage.py migrate
 ```
 
-This view is exposed a URL through `example/urls.py`:
-
-```python
-# example/urls.py
-from django.urls import path
-
-from example.views import index
-
-
-urlpatterns = [
-    path('', index),
-]
+6. Create superuser:
+```bash
+python manage.py createsuperuser
 ```
 
-Finally, it's made accessible to the Django server inside `api/urls.py`:
-
-```python
-# api/urls.py
-from django.urls import path, include
-
-urlpatterns = [
-    ...
-    path('', include('example.urls')),
-]
-```
-
-This example uses the Web Server Gateway Interface (WSGI) with Django to enable handling requests on Vercel with Serverless Functions.
-
-## Running Locally
-
+7. Run development server:
 ```bash
 python manage.py runserver
 ```
 
-Your Django application is now available at `http://localhost:8000`.
+## API Endpoints
 
-## One-Click Deploy
+### Authentication
+- `POST /api/token/` - Get JWT tokens
+- `POST /api/token/refresh/` - Refresh JWT token
 
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
+### Employee Management
+- `GET /api/employees/` - List employees
+- `POST /api/employees/` - Create employee
+- `GET /api/employees/me/` - Get current employee details
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fexamples%2Ftree%2Fmain%2Fpython%2Fdjango&demo-title=Django%20%2B%20Vercel&demo-description=Use%20Django%204%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fdjango-template.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994241/random/django.png)
+### Work Locations
+- `GET /api/locations/` - List work locations
+- `POST /api/locations/` - Add work location (Admin only)
+- `PUT /api/locations/{id}/` - Update work location
+- `DELETE /api/locations/{id}/` - Delete work location
+
+### Attendance
+- `GET /api/attendance/` - List attendance records
+- `POST /api/attendance/mark_attendance/` - Mark attendance
+- `GET /api/attendance/today/` - Get today's attendance
+
+## API Usage Examples
+
+### Mark Attendance
+```json
+POST /api/attendance/mark_attendance/
+{
+    "attendance_type": "CHECK_IN",
+    "work_location": 1,
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "device_info": {
+        "device_id": "iPhone12",
+        "platform": "iOS",
+        "browser": "Safari"
+    }
+}
+```
+
+### Add Work Location
+```json
+POST /api/locations/
+{
+    "name": "Main Office",
+    "address": "123 Business Park, City",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "radius": 100,
+    "is_active": true
+}
+```
+
+## Location Verification
+
+The system uses the Haversine formula to calculate the distance between the employee's location and the work location. Attendance is marked as:
+- `VERIFIED` - Within work location radius
+- `OUTSIDE_RANGE` - Outside work location radius
+- `UNVERIFIED` - Location verification failed
+
+## Admin Interface
+
+Access the admin interface at `/admin/` to:
+- Manage employees and work locations
+- View and filter attendance records
+- Generate attendance reports
+- Monitor attendance status
+
+## Deployment
+
+This application is optimized for serverless deployment on Vercel:
+
+1. Configure Vercel project
+2. Set environment variables in Vercel dashboard
+3. Connect to PostgreSQL database
+4. Deploy using Vercel CLI or GitHub integration
+
+## License
+
+MIT License - Feel free to use this project for your organization.
