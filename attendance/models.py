@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.contrib.gis.db import models as gis_models
-from django.contrib.gis.geos import Point
 from django.utils import timezone
+import math
 
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -14,10 +13,11 @@ class Employee(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.employee_id})"
 
-class WorkLocation(gis_models.Model):
+class WorkLocation(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField()
-    location = gis_models.PointField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
     radius = models.FloatField(help_text="Radius in meters")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -40,15 +40,34 @@ class AttendanceRecord(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
     attendance_type = models.CharField(max_length=10, choices=ATTENDANCE_TYPES)
-    location = gis_models.PointField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
     work_location = models.ForeignKey(WorkLocation, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='UNVERIFIED')
     device_info = models.JSONField(null=True, blank=True)
     
+    def calculate_distance(self, lat1, lon1, lat2, lon2):
+        R = 6371000  # Earth's radius in meters
+        φ1 = math.radians(lat1)
+        φ2 = math.radians(lat2)
+        Δφ = math.radians(lat2 - lat1)
+        Δλ = math.radians(lon2 - lon1)
+
+        a = (math.sin(Δφ/2) * math.sin(Δφ/2) +
+             math.cos(φ1) * math.cos(φ2) *
+             math.sin(Δλ/2) * math.sin(Δλ/2))
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return R * c  # Distance in meters
+    
     def save(self, *args, **kwargs):
         if not self.status:
             # Calculate distance between check-in location and work location
-            distance = self.location.distance(self.work_location.location) * 100  # Convert to meters
+            distance = self.calculate_distance(
+                self.latitude, 
+                self.longitude,
+                self.work_location.latitude,
+                self.work_location.longitude
+            )
             if distance <= self.work_location.radius:
                 self.status = 'VERIFIED'
             else:

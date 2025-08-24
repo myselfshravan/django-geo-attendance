@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from .models import Employee, WorkLocation, AttendanceRecord
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,22 +22,21 @@ class EmployeeSerializer(serializers.ModelSerializer):
         employee = Employee.objects.create(user=user, **validated_data)
         return employee
 
-class WorkLocationSerializer(GeoFeatureModelSerializer):
+class WorkLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkLocation
-        geo_field = 'location'
-        fields = ('id', 'name', 'address', 'location', 'radius', 'is_active', 'created_at')
+        fields = ('id', 'name', 'address', 'latitude', 'longitude', 'radius', 'is_active', 'created_at')
         read_only_fields = ('id', 'created_at')
 
-class AttendanceRecordSerializer(GeoFeatureModelSerializer):
+class AttendanceRecordSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()
     work_location_name = serializers.SerializerMethodField()
 
     class Meta:
         model = AttendanceRecord
-        geo_field = 'location'
         fields = ('id', 'employee', 'employee_name', 'timestamp', 'attendance_type', 
-                 'location', 'work_location', 'work_location_name', 'status', 'device_info')
+                 'latitude', 'longitude', 'work_location', 'work_location_name', 
+                 'status', 'device_info')
         read_only_fields = ('id', 'status')
 
     def get_employee_name(self, obj):
@@ -48,15 +46,6 @@ class AttendanceRecordSerializer(GeoFeatureModelSerializer):
         return obj.work_location.name
 
 class AttendanceCreateSerializer(serializers.ModelSerializer):
-    latitude = serializers.FloatField(write_only=True)
-    longitude = serializers.FloatField(write_only=True)
-
     class Meta:
         model = AttendanceRecord
         fields = ('employee', 'attendance_type', 'work_location', 'latitude', 'longitude', 'device_info')
-
-    def create(self, validated_data):
-        lat = validated_data.pop('latitude')
-        lon = validated_data.pop('longitude')
-        validated_data['location'] = Point(lon, lat)
-        return AttendanceRecord.objects.create(**validated_data)
